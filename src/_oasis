@@ -33,4 +33,4 @@ Executable "mirage-www.xen"
   CompiledObject:     native
   Target:             xen
   Install:            false
-  BuildDepends:       mirage, cohttp.mirage, uri, re, cow
+  BuildDepends:       mirage, cohttp.mirage, pcap, pcap.mirage, uri, re, cow
