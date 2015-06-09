@@ -100,7 +100,11 @@ module Main
                    redirect = (fun ~uri -> S.respond_redirect ~uri ());
                  }
         in
-        Cowabloga.Dispatch.f io dispatcher uri
+        if Uri.path uri = "/rrd_updates"
+        then S.respond_string ~status:`OK ~body:(Stats.get_rrd_updates uri) ()
+        else if Uri.path uri = "/rrd_timescales"
+        then S.respond_string ~status:`OK ~body:(Stats.get_rrd_timescales uri) ()
+        else Cowabloga.Dispatch.f io dispatcher uri
       in
       let conn_closed (_,conn_id) =
         let cid = Cohttp.Connection.to_string conn_id in

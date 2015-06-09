@@ -81,8 +81,8 @@ let https =
   http_server (conduit_direct (stack default_console))
 
 let main =
-  let libraries = [ "cow.syntax"; "cowabloga" ] in
-  let packages = [ "cow"; "cowabloga" ] in
+  let libraries = [ "cow.syntax"; "cowabloga"; "rrd" ] in
+  let packages = [ "cow"; "cowabloga"; "xapi-rrd" ] in
   foreign ~libraries ~packages "Dispatch.Main"
     (console @-> kv_ro @-> kv_ro @-> http @-> job)
 
