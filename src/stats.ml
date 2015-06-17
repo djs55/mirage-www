@@ -83,10 +83,27 @@ let start ~sleep =
   Lwt.async loop
 
 let page () =
+  let sections = List.map (fun ds ->
+    <:html<
+    <h2>$str:ds.Rrd.ds_name$</h2>
+    <div id=$str:ds.Rrd.ds_name$></div>
+    >>
+  ) (Array.to_list rrd.Rrd.rrd_dss) in
+
   <:html<
-    <p>
-    $[`Data (Rrd.json_to_string rrd)]$
-    </p>
+    <head>
+      <meta charset="utf-8" />
+      <link href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.10/c3.css" rel="stylesheet" type="text/css"/>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js" charset="utf-8"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.10/c3.min.js"></script>
+      <script src="stats/main.js"> </script>
+    </head>
+    <body>
+      <h1>GC statistics</h1>
+      <p>
+        $List.concat sections$
+      </p>
+    </body>
   >>
 
 let get_rrd_updates uri =
