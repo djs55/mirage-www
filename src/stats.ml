@@ -63,59 +63,28 @@ let create_fresh_rrd use_min_max dss =
   let rras = create_rras use_min_max in
   let dss = Array.of_list (List.map (fun ds ->
       Rrd.ds_create ds.Ds.name ds.Ds.ty ~mrhb:300.0 ~max:ds.Ds.max
-      ~min:ds.Ds.min Rrd.VT_Unknown 
+      ~min:ds.Ds.min Rrd.VT_Unknown
     ) dss) in
   let rrd = Rrd.rrd_create dss rras (Int64.of_int step) (Unix.gettimeofday()) in
   rrd
 
-let delay = 60. *. 2.
-let history = 100
+let update_rrds timestamp dss rrd =
+  Rrd.ds_update_named rrd timestamp ~new_domid:false
+    (List.map (fun ds -> ds.Ds.name, (ds.Ds.value, fun x -> x)) dss)
 
-let html_of_stat t =
-  let open Gc in
-  let k f =
-    let str = Printf.sprintf "%dk" (f / 1_000) in
-    Cow.Html.of_string str
-  in
-  let m f =
-    let str = Printf.sprintf "%.0fm" (f /. 1_000_000.) in
-    Cow.Html.of_string str
-  in
-  <:html<
-      <tr>
-      <td>$m (Gc.allocated_bytes ())$</td>
-      <td>$k t.heap_words$</td>
-      <td>$k t.live_words$</td>
-      </tr>
-    >>
-
-let html_of_stats ts =
-  <:html<
-    <table>
-    <tr>
-    <th>Allocated Bytes</th>
-    <th>Heap Words</th>
-    <th>Live Words</th>
-    </tr>
-    $list:List.map html_of_stat ts$
-    </table>
-   >>
-
-let stats = Queue.create ()
+let rrd = create_fresh_rrd true (make_dss (Gc.stat ()))
 
 let start ~sleep =
-  let gather () =
-    let stat = Gc.stat () in
-    if Queue.length stats >= history then ignore (Queue.pop stats);
-    Queue.push stat stats
-  in
   let rec loop () =
-    gather ();
-    sleep delay >>= fun () ->
-    loop ()
-  in
+    let timestamp = Clock.time () in
+    update_rrds timestamp (make_dss (Gc.stat ())) rrd;
+    sleep 5. >>= fun () ->
+    loop () in
   Lwt.async loop
 
 let page () =
-  let stats = Queue.fold (fun acc s -> s :: acc) [] stats in
-  html_of_stats stats
+  <:html<
+    <p>
+    $[`Data (Rrd.json_to_string rrd)]$
+    </p>
+  >>
