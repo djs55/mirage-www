@@ -37,9 +37,11 @@ configure:
 	$(MIRAGE) configure src/config.ml $(FLAGS) --$(MODE)
 
 depend:
+	cd stats && make depend
 	cd src && make depend
 
 build:
+	cd stats && make build
 	cd src && make build
 
 run:
