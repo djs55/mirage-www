@@ -88,3 +88,20 @@ let page () =
     $[`Data (Rrd.json_to_string rrd)]$
     </p>
   >>
+
+let get_rrd_updates uri =
+  let query = Uri.query uri in
+  let get key =
+    if List.mem_assoc key query
+    then match List.assoc key query with
+      | [] -> None
+      | x :: _ -> Some x
+    else None in
+  let (>>=) m f = match m with None -> None | Some x -> f x in
+  let default d = function None -> d | Some x -> x in
+  let int64 x = try Some (Int64.of_string x) with _ -> None in
+  let cf x = try Some (Rrd.cf_type_of_string x) with _ -> None in
+  let start = default 0L (get "start" >>= int64) in
+  let interval = default 0L (get "interval" >>= int64) in
+  let cfopt = get "cf" >>= cf in
+  Rrd_updates.export ~json:true [ "", rrd ] start interval cfopt
