@@ -121,4 +121,4 @@ let get_rrd_updates uri =
   let start = default 0L (get "start" >>= int64) in
   let interval = default 0L (get "interval" >>= int64) in
   let cfopt = get "cf" >>= cf in
-  Rrd_updates.export ~json:true [ "", rrd ] start interval cfopt
+  Rrd_updates.export [ "", rrd ] start interval cfopt
