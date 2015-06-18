@@ -96,7 +96,7 @@ let page () =
       <link href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.10/c3.css" rel="stylesheet" type="text/css"/>
       <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js" charset="utf-8"></script>
       <script src="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.10/c3.min.js"></script>
-      <script src="stats/main.js"> </script>
+      <script src="/js/stats/main.js"> </script>
     </head>
     <body>
       <h1>GC statistics</h1>

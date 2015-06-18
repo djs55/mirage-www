@@ -14,8 +14,12 @@ export PKG_CONFIG_PATH=$(shell opam config var prefix)/lib/pkgconfig
 export OPAMVERBOSE=1
 export OPAMYES=1
 
-.PHONY: all depend clean build main.byte
-all:: build
+.PHONY: all depend clean build main.byte install
+all:: build install
+
+install: build
+	mkdir -p ../files/js/stats
+	cp main.js ../files/js/stats/main.js
 
 depend::
 	$(OPAM) install $(PKGS) --verbose
