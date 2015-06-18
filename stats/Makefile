@@ -1,5 +1,5 @@
-LIBS   = -pkgs lwt.syntax,js_of_ocaml,js_of_ocaml.syntax,c3
-PKGS   = js_of_ocaml lwt c3
+LIBS   = -pkgs lwt.syntax,js_of_ocaml,js_of_ocaml.syntax,c3,uri,xen-api-client.lwt,re.str
+PKGS   = js_of_ocaml lwt c3 uri xen-api-client re
 SYNTAX = -tags "syntax(camlp4o),annot,bin_annot,strict_sequence,principal,thread"
 
 SYNTAX += -tag-line "<static*.*>: -syntax(camlp4o)"
