@@ -94,11 +94,7 @@ let watch_rrds () =
     Lwt_js.sleep 5.
     >>= fun () ->
     loop (Int64.to_int update.Rrd_updates.end_time) in
-  (* XXX: query server's current clock *)
-  do_get ~uri:(uri 15000000) >>= fun txt ->
-  let input = Xmlm.make_input (`String (0, txt)) in
-  let update = Rrd_updates.of_xml input in
-  loop ((Int64.to_int update.Rrd_updates.end_time) - 60*9)
+  loop (-window + 1)
 
 let _ =
   Dom_html.window##onload <- Dom_html.handler
