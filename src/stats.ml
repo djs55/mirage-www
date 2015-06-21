@@ -2,22 +2,39 @@ let (>>=) = Lwt.bind
 
 open Rrd
 
+module Timescale = struct
+  type t = {
+    num_intervals: int;
+    interval_in_steps: int;
+  }
+
+  let make ~num_intervals ~interval_in_steps () =
+    { num_intervals; interval_in_steps }
+
+  let to_span t =
+    t.num_intervals * t.interval_in_steps * 5 (* ??? *)
+
+  let interval_to_span t =
+    t.interval_in_steps * 5
+
+end
+
 let timescales = [
-  (120,     1); (* 120 values of interval 1 step (5 secs) = 10 mins  *)
-  (120,    12); (* 120 values of interval 12 steps (1 min) = 2 hours *)
-  (168,   720); (* 168 values of interval 720 steps (1 hr) = 1 week  *)
-  (366, 17280); (* 366 values of interval 17280 steps (1 day) = 1 yr *)
+  "minute", (Timescale.make ~num_intervals:120 ~interval_in_steps:1 ());
+  "hour",   (Timescale.make ~num_intervals:120 ~interval_in_steps:12 ());
+  "day",    (Timescale.make ~num_intervals:168 ~interval_in_steps:720 ());
+  "year",   (Timescale.make ~num_intervals:366 ~interval_in_steps:17280 ());
 ]
 
 let create_rras use_min_max =
   (* Create archives of type min, max and average and last *)
   Array.of_list (List.flatten
-    (List.map (fun (n,ns) ->
-      if ns > 1 && use_min_max then [
-        Rrd.rra_create Rrd.CF_Average n ns 1.0;
-        Rrd.rra_create Rrd.CF_Min n ns 1.0;
-        Rrd.rra_create Rrd.CF_Max n ns 1.0;
-      ] else [Rrd.rra_create Rrd.CF_Average n ns 0.5]
+    (List.map (fun (_, { Timescale.num_intervals; interval_in_steps }) ->
+      if interval_in_steps > 1 && use_min_max then [
+        Rrd.rra_create Rrd.CF_Average num_intervals interval_in_steps 1.0;
+        Rrd.rra_create Rrd.CF_Min num_intervals interval_in_steps 1.0;
+        Rrd.rra_create Rrd.CF_Max num_intervals interval_in_steps 1.0;
+      ] else [Rrd.rra_create Rrd.CF_Average num_intervals interval_in_steps 0.5]
     ) timescales)
   )
 
