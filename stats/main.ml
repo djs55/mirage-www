@@ -37,8 +37,19 @@ let charts = Hashtbl.create 7
 
 let colon = Re_str.regexp_string ":"
 
+(* matches stats.ml *)
+let timescales = [
+  (120,     1); (* 120 values of interval 1 step (5 secs) = 10 mins  *)
+  (120,    12); (* 120 values of interval 12 steps (1 min) = 2 hours *)
+  (168,   720); (* 168 values of interval 720 steps (1 hr) = 1 week  *)
+  (366, 17280); (* 366 values of interval 17280 steps (1 day) = 1 yr *)
+]
+
+let window =
+  let n, interval = List.nth timescales 0 in
+  n * interval * 5
+
 let render_update update =
-  (* XXX: pick a memory free RRD for now *)
   let open Rrd_updates in
 	let _, legends = Array.fold_left
 	  (fun (idx, acc) elt ->
