@@ -93,7 +93,7 @@ let watch_rrds () =
   let timescale = List.find (fun t -> Rrd_timescales.name_of t = selected_timescale) timescales in
 
   let uri start =
-    let query = [ "start", [ string_of_int start ] ] in
+    let query = [ "start", [ string_of_int start ]; "interval", [ string_of_int (Rrd_timescales.interval_to_span timescale)] ] in
     Uri.make ~scheme:"http" ~path:"/rrd_updates" ~query () in
 
   let rec loop start =
@@ -103,7 +103,7 @@ let watch_rrds () =
     let update = Rrd_updates.of_xml input in
     Firebug.console##log(Js.string "got some updates");
     render_update timescale update;
-    Lwt_js.sleep @@ float_of_int @@ Rrd_timescales.interval_to_span timescale
+    Lwt_js.sleep 5.
     >>= fun () ->
     loop (Int64.to_int update.Rrd_updates.end_time) in
 
