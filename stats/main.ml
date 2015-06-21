@@ -49,25 +49,22 @@ let render_update update =
        Firebug.console##log(Js.string (elt));
          (idx + 1, acc)
     ) (0, []) update.legend in
-  Firebug.console##log(Js.string (Printf.sprintf "legends = [ %s ]" (String.concat "; " (List.map (fun (idx, name) -> string_of_int idx ^ ":" ^ name) legends))));
 
   let data = Array.to_list update.data in
   List.iter
     (fun (idx, legend) ->
-  	  (* Firebug.console##log(Js.string(Printf.sprintf "legends = %d; nrows = %d; nrow_datas = [ %s ]" (Array.length update.legend) (Array.length update.data) (String.concat "; " (List.map (fun x -> string_of_int (Array.length x.row_data)) (Array.to_list update.data)))));
-    *)
 	  	let points = List.map (fun x -> x.time, x.row_data.(idx)) data in
+      let x_min = Int64.to_float update.Rrd_updates.end_time -. (float_of_int window) in
+      Firebug.console##log(Js.string (Printf.sprintf "x_min = %f points = [| %s |]" x_min (String.concat "; " (List.map (fun (t, p) -> Printf.sprintf "%Ld %f" t p) points))));
+
       (* Filter out Nans *)
 	  	let points = List.filter (fun (_, x) -> classify_float x <> FP_nan) points in
-	  	Firebug.console##log(Js.string (Printf.sprintf "points = [| %s |]" (String.concat "; " (List.map (fun (t, p) -> Printf.sprintf "%Ld %f" t p) points))));
-      (* XXX: I have no idea what these values mean! *)
-	  	(*let point = sin(time /. 60.) *. point *. 0.2 +. point *. 0.8 in*)
       let chart =
         if Hashtbl.mem charts legend
         then Hashtbl.find charts legend
         else begin
           let chart =
-            C3.Line.make ~kind:`Timeseries ~x_format:"%m/%d" ()
+            C3.Line.make ~kind:`Timeseries ~x_format:"%H:%M:%S" ()
             |> C3.Line.render ~bindto:("#" ^ legend) in
           Hashtbl.add charts legend chart;
           chart
@@ -75,7 +72,7 @@ let render_update update =
       if points <> []
       then C3.Line.flow ~segments:[ C3.Segment.make ~label:legend ~points:(List.map (fun (t, v) -> Int64.to_float t, v) points)
                                ~kind:`Area_step () ]
-                   ~flow_to:(`Delete 1)
+                   ~flow_to:(`ToX (`Time x_min))
                    chart;
     ) legends
 
