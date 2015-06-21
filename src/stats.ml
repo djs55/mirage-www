@@ -89,7 +89,12 @@ let page () =
     <div id=$str:ds.Rrd.ds_name$></div>
     >>
   ) (Array.to_list rrd.Rrd.rrd_dss) in
-
+  let timescales = List.map (fun t ->
+    let uri = "?timescale=" ^ t.Rrd_timescales.name in
+    <:html<
+    <a href="$str:uri$">$str:t.Rrd_timescales.name$</a>
+    >>
+  ) timescales in
   <:html<
     <head>
       <meta charset="utf-8" />
@@ -100,6 +105,9 @@ let page () =
     </head>
     <body>
       <h1>GC statistics</h1>
+      <p>
+        $List.concat timescales$
+      </p>
       <p>
         $List.concat sections$
       </p>

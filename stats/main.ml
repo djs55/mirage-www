@@ -77,11 +77,20 @@ let render_update timescale update =
     ) legends
 
 let watch_rrds () =
+  let get key query =
+    if List.mem_assoc key query
+    then Some (List.assoc key query)
+    else None in
+  let default d = function None -> d | Some x -> x in
+  Firebug.console##log(Printf.sprintf "arguments = [ %s ]" (String.concat ", " (List.map (fun (k, v) -> k ^ ":" ^ v) Url.Current.arguments)));
+
+  let selected_timescale = default "minute" @@ get "?timescale" Url.Current.arguments in
+
   do_get ~uri:(Uri.make ~scheme:"http" ~path:"/rrd_timescales" ())
   >>= fun txt ->
   let timescales = Rrd_timescales.of_json txt in
 
-  let timescale = List.find (fun t -> Rrd_timescales.name_of t = "minute") timescales in
+  let timescale = List.find (fun t -> Rrd_timescales.name_of t = selected_timescale) timescales in
 
   let uri start =
     let query = [ "start", [ string_of_int start ] ] in
