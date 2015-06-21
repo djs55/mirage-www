@@ -2,34 +2,17 @@ let (>>=) = Lwt.bind
 
 open Rrd
 
-module Timescale = struct
-  type t = {
-    num_intervals: int;
-    interval_in_steps: int;
-  }
-
-  let make ~num_intervals ~interval_in_steps () =
-    { num_intervals; interval_in_steps }
-
-  let to_span t =
-    t.num_intervals * t.interval_in_steps * 5 (* ??? *)
-
-  let interval_to_span t =
-    t.interval_in_steps * 5
-
-end
-
-let timescales = [
-  "minute", (Timescale.make ~num_intervals:120 ~interval_in_steps:1 ());
-  "hour",   (Timescale.make ~num_intervals:120 ~interval_in_steps:12 ());
-  "day",    (Timescale.make ~num_intervals:168 ~interval_in_steps:720 ());
-  "year",   (Timescale.make ~num_intervals:366 ~interval_in_steps:17280 ());
-]
+let timescales = Rrd_timescales.([
+  make ~name:"minute" ~num_intervals:120 ~interval_in_steps:1 ();
+  make ~name:"hour"   ~num_intervals:120 ~interval_in_steps:12 ();
+  make ~name:"day"    ~num_intervals:168 ~interval_in_steps:720 ();
+  make ~name:"year"   ~num_intervals:366 ~interval_in_steps:17280 ();
+])
 
 let create_rras use_min_max =
   (* Create archives of type min, max and average and last *)
   Array.of_list (List.flatten
-    (List.map (fun (_, { Timescale.num_intervals; interval_in_steps }) ->
+    (List.map (fun { Rrd_timescales.num_intervals; interval_in_steps } ->
       if interval_in_steps > 1 && use_min_max then [
         Rrd.rra_create Rrd.CF_Average num_intervals interval_in_steps 1.0;
         Rrd.rra_create Rrd.CF_Min num_intervals interval_in_steps 1.0;
@@ -139,3 +122,6 @@ let get_rrd_updates uri =
   let interval = default 0L (get "interval" >>= int64) in
   let cfopt = get "cf" >>= cf in
   Rrd_updates.export [ "", rrd ] start interval cfopt
+
+let get_rrd_timescales uri =
+  Rrd_timescales.to_json timescales

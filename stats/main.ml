@@ -37,20 +37,9 @@ let charts = Hashtbl.create 7
 
 let colon = Re_str.regexp_string ":"
 
-(* matches stats.ml *)
-let timescales = [
-  (120,     1); (* 120 values of interval 1 step (5 secs) = 10 mins  *)
-  (120,    12); (* 120 values of interval 12 steps (1 min) = 2 hours *)
-  (168,   720); (* 168 values of interval 720 steps (1 hr) = 1 week  *)
-  (366, 17280); (* 366 values of interval 17280 steps (1 day) = 1 yr *)
-]
-
-let window =
-  let n, interval = List.nth timescales 0 in
-  n * interval * 5
-
-let render_update update =
+let render_update timescale update =
   let open Rrd_updates in
+  let window = Rrd_timescales.to_span timescale in
 	let _, legends = Array.fold_left
 	  (fun (idx, acc) elt ->
       match Re_str.split_delim colon elt with
@@ -88,6 +77,12 @@ let render_update update =
     ) legends
 
 let watch_rrds () =
+  do_get ~uri:(Uri.make ~scheme:"http" ~path:"/rrd_timescales" ())
+  >>= fun txt ->
+  let timescales = Rrd_timescales.of_json txt in
+
+  let timescale = List.find (fun t -> Rrd_timescales.name_of t = "minute") timescales in
+
   let uri start =
     let query = [ "start", [ string_of_int start ] ] in
     Uri.make ~scheme:"http" ~path:"/rrd_updates" ~query () in
@@ -98,10 +93,13 @@ let watch_rrds () =
     let input = Xmlm.make_input (`String (0, txt)) in
     let update = Rrd_updates.of_xml input in
     Firebug.console##log(Js.string "got some updates");
-    render_update update;
-    Lwt_js.sleep 5.
+    render_update timescale update;
+    Lwt_js.sleep @@ float_of_int @@ Rrd_timescales.interval_to_span timescale
     >>= fun () ->
     loop (Int64.to_int update.Rrd_updates.end_time) in
+
+  let window = Rrd_timescales.to_span timescale in
+
   loop (-window + 1)
 
 let _ =
