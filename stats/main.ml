@@ -65,6 +65,7 @@ let render_update timescale update =
         else begin
           let chart =
             C3.Line.make ~kind:`Timeseries ~x_format:"%H:%M:%S" ()
+            |> C3.Line.add ~segment:(C3.Segment.make ~label:legend ~kind:`Area ~points:[] ())
             |> C3.Line.render ~bindto:("#" ^ legend) in
           Hashtbl.add charts legend chart;
           chart
