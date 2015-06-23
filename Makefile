@@ -49,4 +49,5 @@ run:
 
 clean:
 	cd src && make clean
+	cd stats && make clean
 	$(RM) log src/mir-www src/*.img src/make-fat*.sh
