@@ -68,17 +68,24 @@ let render_update timescale update =
       x in
 
   let x_min = Int64.to_float update.Rrd_updates.end_time -. (float_of_int window) in
+  let nans = List.map
+    (fun (idx, _) ->
+      Array.map (fun x -> classify_float x.row_data.(idx) = FP_nan) update.data
+    ) legends in
   let segments =
     List.map (fun (idx, legend) ->
-      let points = List.map (fun x -> x.time, x.row_data.(idx)) data in
+      let points = List.mapi (fun i x ->
+        (* if a NaN appears in any archive, set all the others to NaN too. *)
+        if List.fold_left (||) false (List.map (fun x -> x.(i)) nans)
+        then []
+        else [x.time, x.row_data.(idx)]
+      ) data |> List.concat in
       Firebug.console##log(Js.string (Printf.sprintf "x_min = %f points = [| %s |]" x_min (String.concat "; " (List.map (fun (t, p) -> Printf.sprintf "%Ld %f" t p) points))));
-      (* Filter out Nans *)
-      let points = List.filter (fun (_, x) -> classify_float x <> FP_nan) points in
       if points <> []
-      then [ C3.Segment.make ~label:legend ~points:(List.map (fun (t, v) -> Int64.to_float t, v) points) () ]
+      then [ C3.Segment.make ~label:legend ~kind:`Area ~points:(List.map (fun (t, v) -> Int64.to_float t, v) points) () ]
       else []
     ) legends |> List.concat in
-  C3.Line.flow ~segments ~flow_to:(`ToX (`Time x_min)) chart
+  C3.Line.update ~segments chart
 
 let watch_rrds () =
   let get key query =
@@ -100,6 +107,8 @@ let watch_rrds () =
     let query = [ "start", [ string_of_int start ]; "interval", [ string_of_int (Rrd_timescales.interval_to_span timescale)] ] in
     Uri.make ~scheme:"http" ~path:"/rrd_updates" ~query () in
 
+  let window = Rrd_timescales.to_span timescale in
+
   let rec loop start =
     do_get ~uri:(uri start)
     >>= fun txt ->
@@ -109,9 +118,8 @@ let watch_rrds () =
     render_update timescale update;
     Lwt_js.sleep 5.
     >>= fun () ->
-    loop (Int64.to_int update.Rrd_updates.end_time) in
+    loop (-window + 1) in
 
-  let window = Rrd_timescales.to_span timescale in
 
   loop (-window + 1)
 
