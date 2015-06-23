@@ -61,7 +61,7 @@ let render_update timescale update =
             C3.Segment.make ~label ~kind:`Area ~points:[] ()
           ) legends in
       let x =
-        C3.Line.make ~kind:`Timeseries ~x_format:"%H:%M:%S" ()
+        C3.Line.make ~kind:`Timeseries ~x_format:"%H:%M:%S" ~x_label:"Time" ~y_label:"words" ()
         |> C3.Line.add_group ~segments
         |> C3.Line.render ~bindto:"#chart" in
       chart := Some x;
