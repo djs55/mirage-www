@@ -39,23 +39,13 @@ module Ds = struct
   }
 end
 
-let make_dss stats =
-  let total_kib = Int64.of_int (stats.Gc.heap_words / 256) in
-  let actualfree_kib = Int64.of_int (stats.Gc.free_words / 256) in
-  let actuallive_kib = Int64.of_int (stats.Gc.live_words / 256) in
-  let grad_kib = (stats.Gc.minor_words +. stats.Gc.major_words -. stats.Gc.promoted_words) /. 256. in [
-  Ds.make ~name:"memory_usage" ~units:"KiB"
-    ~description:"Total memory allocated used"
-    ~value:(Rrd.VT_Int64 total_kib) ~ty:Rrd.Gauge ~min:0.0 ();
-  Ds.make ~name:"free_memory" ~units:"KiB"
-    ~description:"Free memory available"
-    ~value:(Rrd.VT_Int64 actualfree_kib) ~ty:Rrd.Gauge ~min:0.0 ();
-  Ds.make ~name:"live_memory" ~units:"KiB"
-    ~description:"Live memory used"
-    ~value:(Rrd.VT_Int64 actuallive_kib) ~ty:Rrd.Gauge ~min:0.0 ();
-  Ds.make ~name:"allocation" ~units:"KiB"
-    ~description:"Memory allocation done"
-    ~value:(Rrd.VT_Float grad_kib) ~ty:Rrd.Derive ~min:0.0 ();
+let make_dss stats = [
+  Ds.make ~name:"free_words" ~units:"words"
+    ~description:"Number of words in the free list"
+    ~value:(Rrd.VT_Int64 (Int64.of_int stats.Gc.free_words)) ~ty:Rrd.Gauge ~min:0.0 ();
+  Ds.make ~name:"live_words" ~units:"words"
+    ~description:"Number of words of live data in the major heap, including the header words."
+    ~value:(Rrd.VT_Int64 (Int64.of_int stats.Gc.live_words)) ~ty:Rrd.Gauge ~min:0.0 ();
   ]
 
 (** Create a rrd *)
@@ -83,12 +73,6 @@ let start ~sleep =
   Lwt.async loop
 
 let page () =
-  let sections = List.map (fun ds ->
-    <:html<
-    <h2>$str:ds.Rrd.ds_name$</h2>
-    <div id=$str:ds.Rrd.ds_name$></div>
-    >>
-  ) (Array.to_list rrd.Rrd.rrd_dss) in
   let timescales = List.map (fun t ->
     let uri = "?timescale=" ^ t.Rrd_timescales.name in
     <:html<
@@ -109,7 +93,7 @@ let page () =
         $List.concat timescales$
       </p>
       <p>
-        $List.concat sections$
+        <div id="chart"/>
       </p>
     </body>
   >>

@@ -33,7 +33,7 @@ let do_get ~uri =
   Lwt.on_cancel res (fun () -> req##abort ()) ;
   res
 
-let charts = Hashtbl.create 7
+let chart = ref None
 
 let colon = Re_str.regexp_string ":"
 
@@ -51,31 +51,34 @@ let render_update timescale update =
     ) (0, []) update.legend in
 
   let data = Array.to_list update.data in
-  List.iter
-    (fun (idx, legend) ->
-	  	let points = List.map (fun x -> x.time, x.row_data.(idx)) data in
-      let x_min = Int64.to_float update.Rrd_updates.end_time -. (float_of_int window) in
-      Firebug.console##log(Js.string (Printf.sprintf "x_min = %f points = [| %s |]" x_min (String.concat "; " (List.map (fun (t, p) -> Printf.sprintf "%Ld %f" t p) points))));
+  let labels = List.map snd legends in
+  let chart = match !chart with
+  | Some x -> x
+  | None ->
+      let segments =
+        List.map
+          (fun (_, label) ->
+            C3.Segment.make ~label ~kind:`Area ~points:[] ()
+          ) legends in
+      let x =
+        C3.Line.make ~kind:`Timeseries ~x_format:"%H:%M:%S" ()
+        |> C3.Line.add_group ~segments
+        |> C3.Line.render ~bindto:"#chart" in
+      chart := Some x;
+      x in
 
+  let x_min = Int64.to_float update.Rrd_updates.end_time -. (float_of_int window) in
+  let segments =
+    List.map (fun (idx, legend) ->
+      let points = List.map (fun x -> x.time, x.row_data.(idx)) data in
+      Firebug.console##log(Js.string (Printf.sprintf "x_min = %f points = [| %s |]" x_min (String.concat "; " (List.map (fun (t, p) -> Printf.sprintf "%Ld %f" t p) points))));
       (* Filter out Nans *)
-	  	let points = List.filter (fun (_, x) -> classify_float x <> FP_nan) points in
-      let chart =
-        if Hashtbl.mem charts legend
-        then Hashtbl.find charts legend
-        else begin
-          let chart =
-            C3.Line.make ~kind:`Timeseries ~x_format:"%H:%M:%S" ()
-            |> C3.Line.add ~segment:(C3.Segment.make ~label:legend ~kind:`Area ~points:[] ())
-            |> C3.Line.render ~bindto:("#" ^ legend) in
-          Hashtbl.add charts legend chart;
-          chart
-        end in
+      let points = List.filter (fun (_, x) -> classify_float x <> FP_nan) points in
       if points <> []
-      then C3.Line.flow ~segments:[ C3.Segment.make ~label:legend ~points:(List.map (fun (t, v) -> Int64.to_float t, v) points)
-                               ~kind:`Area_step () ]
-                   ~flow_to:(`ToX (`Time x_min))
-                   chart;
-    ) legends
+      then [ C3.Segment.make ~label:legend ~points:(List.map (fun (t, v) -> Int64.to_float t, v) points) () ]
+      else []
+    ) legends |> List.concat in
+  C3.Line.flow ~segments ~flow_to:(`ToX (`Time x_min)) chart
 
 let watch_rrds () =
   let get key query =
