@@ -55,7 +55,7 @@ let create_fresh_rrd use_min_max dss =
       Rrd.ds_create ds.Ds.name ds.Ds.ty ~mrhb:300.0 ~max:ds.Ds.max
       ~min:ds.Ds.min Rrd.VT_Unknown
     ) dss) in
-  let rrd = Rrd.rrd_create dss rras (Int64.of_int step) (Unix.gettimeofday()) in
+  let rrd = Rrd.rrd_create dss rras (Int64.of_int step) (Clock.time ()) in
   rrd
 
 let update_rrds timestamp dss rrd =
